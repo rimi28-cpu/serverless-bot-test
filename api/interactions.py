@@ -1,9 +1,9 @@
 import os
+import asyncio
 from discohook import Client, Interaction, command
 from utils.db import get_db_pool
 from utils.discord_api import add_user_to_guild
 
-# Initialize the discohook client
 app = Client(
     application_id=os.environ["APPLICATION_ID"],
     public_key=os.environ["PUBLIC_KEY"],
@@ -18,25 +18,33 @@ app = Client(
 @command.slash()
 async def add_user(ctx: Interaction, user_id: str):
     """Add a user to this server using their stored OAuth token."""
-    await ctx.response.defer(ephemeral=True)  # defer because API calls may take time
+    await ctx.response.defer(ephemeral=True)
 
     pool = await get_db_pool()
-    guild_id = str(ctx.guild_id)  # ensure string
+    guild_id = str(ctx.guild_id)
 
-    # Fetch user's tokens from Neon
+    # Fetch user from database
     row = await pool.fetchrow(
-        "SELECT access_token, refresh_token FROM users WHERE user_id = $1 AND guild_id = $2",
-        user_id, guild_id
+        """
+        SELECT "accessToken", "refreshToken", "isActive", "deauthorized"
+        FROM "User"
+        WHERE "userId" = $1
+        """,
+        user_id
     )
     if not row:
-        await ctx.response.followup("That user is not in the database.", ephemeral=True)
+        await ctx.response.followup("User not found in database.", ephemeral=True)
+        return
+
+    if not row["isActive"] or row["deauthorized"]:
+        await ctx.response.followup("User is inactive or deauthorized.", ephemeral=True)
         return
 
     success = await add_user_to_guild(
         guild_id=guild_id,
         user_id=user_id,
-        access_token=row["access_token"],
-        refresh_token=row["refresh_token"],
+        access_token=row["accessToken"],
+        refresh_token=row["refreshToken"],
         pool=pool
     )
 
@@ -50,24 +58,12 @@ async def add_user(ctx: Interaction, user_id: str):
 @app.load
 @command.slash()
 async def add_all(ctx: Interaction):
-    """Start adding all users from the database to this server (processed in background)."""
-    await ctx.response.defer(ephemeral=True)
-
-    pool = await get_db_pool()
-    guild_id = str(ctx.guild_id)
-
-    # Mark all users as not added (or you can have a separate 'pending' table)
-    # Here we assume a column 'added' boolean that indicates if they are already in the guild.
-    # We'll reset it to false for all users of this guild to trigger re‑add.
-    await pool.execute(
-        "UPDATE users SET added = false WHERE guild_id = $1",
-        guild_id
-    )
-
-    await ctx.response.followup(
+    """Start adding all eligible users to this server (processed in background)."""
+    await ctx.response.send(
         "Batch addition started. Users will be added gradually in the background.",
         ephemeral=True
     )
+    # Nothing else to do – the cron job will pick them up.
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Slash command: send a repeated message in the current channel
@@ -79,11 +75,11 @@ async def repeat(ctx: Interaction, text: str, times: int):
         await ctx.response.send("You can only repeat up to 5 times due to serverless limits.", ephemeral=True)
         return
 
-    await ctx.response.defer()  # defer so we can send multiple messages
+    await ctx.response.defer()
     channel = ctx.channel
     for i in range(times):
         await channel.send(text)
-        await asyncio.sleep(1)  # be gentle to rate limits
+        await asyncio.sleep(1)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Slash command: ping all members in batches of 5
@@ -93,27 +89,22 @@ async def ping_all(ctx: Interaction):
     """Mention all members in batches of 5 (limited to first 100 members for safety)."""
     await ctx.response.defer()
 
-    # Fetch members (requires GUILD_MEMBERS intent and privileged intent enabled)
-    members = await ctx.guild.fetch_members(limit=100)  # adjust limit as needed
+    members = await ctx.guild.fetch_members(limit=100)
     batch = []
     for member in members:
-        if not member.bot:  # optionally skip bots
+        if not member.bot:
             batch.append(member.mention)
             if len(batch) == 5:
                 await ctx.channel.send(" ".join(batch))
                 batch = []
                 await asyncio.sleep(1)
-
     if batch:
         await ctx.channel.send(" ".join(batch))
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Error handler (optional)
 @app.on_interaction_error()
 async def on_error(interaction: Interaction, error: Exception):
     print(f"Error in interaction: {error}")
-    # You could also log to a Discord channel using app.send
 
-# Vercel serverless handler
 def handler(request):
     return app.handle_request(request)
