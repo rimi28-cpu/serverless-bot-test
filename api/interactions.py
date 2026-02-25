@@ -4,6 +4,24 @@ from discohook import Client, Interaction, command
 from utils.db import get_db_pool
 from utils.discord_api import add_user_to_guild
 
+# Check required variables at startup
+required_vars = [
+    "APPLICATION_ID",
+    "PUBLIC_KEY",
+    "DISCORD_TOKEN",
+    "CLIENT_ID",
+    "CLIENT_SECRET",
+    "NEON_DATABASE_URL",
+    "MAIN_GUILD_ID"
+]
+missing = [var for var in required_vars if not os.getenv(var)]
+if missing:
+    raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
+
+app = discohook.Client(
+    application_id=os.environ["APPLICATION_ID"],  # safe no
+)
+
 app = Client(
     application_id=os.environ["APPLICATION_ID"],
     public_key=os.environ["PUBLIC_KEY"],
