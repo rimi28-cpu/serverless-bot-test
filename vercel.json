@@ -3,9 +3,6 @@
     "api/interactions.py": {
       "maxDuration": 10
     },
-    "api/cron/process_add.py": {
-      "maxDuration": 10
-    }
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/interactions" }
