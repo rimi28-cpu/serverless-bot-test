@@ -17,9 +17,8 @@ async def ping(i: discohook.Interaction):
 
 # New test command
 @app.load
-@discohook.command.slash()
+@discohook.command.slash(name="db_test", description="Test database connection by counting users")
 async def db_test(i: discohook.Interaction):
-    """Test database connection by counting users."""
     pool = await get_db_pool()
     count = await pool.fetchval("SELECT COUNT(*) FROM \"User\"")
     await i.response.send(f"Total users in database: {count}")
