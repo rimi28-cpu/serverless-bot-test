@@ -7,6 +7,7 @@ app = discohook.Client(
     public_key=os.environ["PUBLIC_KEY"],
     token=os.environ["DISCORD_TOKEN"],
     default_help_command=True,
+    password=os.environ.get("APPLICATION_PASSWORD"), 
 )
 
 # Add a simple ping command
