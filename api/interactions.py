@@ -3,7 +3,7 @@ import asyncio
 import discohook
 from utils.db import get_db_pool
 
-app = discohook.Client(
+_discohook_app = discohook.Client(
     application_id=os.environ["APPLICATION_ID"],
     public_key=os.environ["PUBLIC_KEY"],
     token=os.environ["DISCORD_TOKEN"],
@@ -11,19 +11,21 @@ app = discohook.Client(
     default_help_command=True,
 )
 
-@app.load
+@_discohook_app.load
 @discohook.command.slash()
 async def ping(i: discohook.Interaction):
     """Replies with Pong!"""
     await i.response.send("Pong!")
 
-@app.load
+@_discohook_app.load
 @discohook.command.slash(name="db_test", description="Test database connection")
 async def db_test(i: discohook.Interaction):
     pool = await get_db_pool()
     count = await pool.fetchval('SELECT COUNT(*) FROM "User"')
     await i.response.send(f"Total users: {count}")
 
-# Vercel expects a handler function, not the app object directly
-# discohook Client has an aiohttp app underneath
-handler = app.app
+# Explicit handler for Vercel
+async def handler(request):
+    # discohook uses aiohttp - we need to bridge to Vercel's interface
+    return await _discohook_app.app.handle_request(request)
+    
