@@ -14,5 +14,5 @@ async def ping(i: discohook.Interaction):
     """Replies with Pong!"""
     await i.response.send("Pong!")
 
-def handler(request):
-    return app.handle_request(request)
+# Export the ASGI app as the Vercel handler
+handler = app
