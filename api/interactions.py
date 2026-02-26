@@ -1,18 +1,25 @@
 import os
 import discohook
+from utils.db import get_db_pool  # new import
 
-# Create the discohook client (this is an ASGI app)
 app = discohook.Client(
     application_id=os.environ["APPLICATION_ID"],
     public_key=os.environ["PUBLIC_KEY"],
     token=os.environ["DISCORD_TOKEN"],
+    password=os.environ.get("APPLICATION_PASSWORD"),
     default_help_command=True,
-    password=os.environ.get("APPLICATION_PASSWORD"), 
 )
 
-# Add a simple ping command
 @app.load
 @discohook.command.slash()
 async def ping(i: discohook.Interaction):
-    """Replies with Pong!"""
     await i.response.send("Pong!")
+
+# New test command
+@app.load
+@discohook.command.slash()
+async def db_test(i: discohook.Interaction):
+    """Test database connection by counting users."""
+    pool = await get_db_pool()
+    count = await pool.fetchval("SELECT COUNT(*) FROM \"User\"")
+    await i.response.send(f"Total users in database: {count}")
