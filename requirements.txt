@@ -1,4 +1,1 @@
 discohook
-asyncpg
-aiohttp
-python-dotenv  # optional, for local testing
