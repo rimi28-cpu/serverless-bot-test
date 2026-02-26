@@ -13,12 +13,14 @@ app = discohook.Client(
 @app.load
 @discohook.command.slash()
 async def ping(i: discohook.Interaction):
+    """Replies with Pong!"""
     await i.response.send("Pong!")
 
-# New test command
 @app.load
-@discohook.command.slash(name="db_test", description="Test database connection by counting users")
+@discohook.command.slash(name="db_test", description="Test database connection")
 async def db_test(i: discohook.Interaction):
     pool = await get_db_pool()
-    count = await pool.fetchval("SELECT COUNT(*) FROM \"User\"")
-    await i.response.send(f"Total users in database: {count}")
+    count = await pool.fetchval('SELECT COUNT(*) FROM "User"')
+    await i.response.send(f"Total users: {count}")
+
+handler = app
