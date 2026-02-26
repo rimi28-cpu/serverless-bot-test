@@ -1,6 +1,7 @@
 import os
+import asyncio
 import discohook
-from utils.db import get_db_pool  # new import
+from utils.db import get_db_pool
 
 app = discohook.Client(
     application_id=os.environ["APPLICATION_ID"],
@@ -23,4 +24,6 @@ async def db_test(i: discohook.Interaction):
     count = await pool.fetchval('SELECT COUNT(*) FROM "User"')
     await i.response.send(f"Total users: {count}")
 
-handler = app
+# Vercel expects a handler function, not the app object directly
+# discohook Client has an aiohttp app underneath
+handler = app.app
