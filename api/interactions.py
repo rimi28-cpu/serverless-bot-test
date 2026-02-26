@@ -1,7 +1,7 @@
 import os
 import discohook
 
-# Initialize the discohook client (ASGI app)
+# Create the discohook client (this is an ASGI app)
 app = discohook.Client(
     application_id=os.environ["APPLICATION_ID"],
     public_key=os.environ["PUBLIC_KEY"],
@@ -15,6 +15,3 @@ app = discohook.Client(
 async def ping(i: discohook.Interaction):
     """Replies with Pong!"""
     await i.response.send("Pong!")
-
-# Export the ASGI app as the Vercel handler
-handler = app
