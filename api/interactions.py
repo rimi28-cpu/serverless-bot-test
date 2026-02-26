@@ -1,18 +1,14 @@
-import os
-import discohook
+from http.server import BaseHTTPRequestHandler
 
-app = discohook.Client(
-    application_id=os.environ["APPLICATION_ID"],
-    public_key=os.environ["PUBLIC_KEY"],
-    token=os.environ["DISCORD_TOKEN"],
-    default_help_command=True,
-)
-
-@app.load
-@discohook.command.slash()
-async def ping(i: discohook.Interaction):
-    """Replies with Pong!"""
-    await i.response.send("Pong!")
-
-# Export the ASGI app as the Vercel handler
-handler = app
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'Hello from Vercel!')
+    
+    def do_POST(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'POST received')
